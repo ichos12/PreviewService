@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.ui.Model
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import java.util.*
+import javax.servlet.http.HttpServletRequest
 
 
 @RestController
@@ -15,13 +17,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 class PreviewController {
     @Autowired
     lateinit var PreviewService: PreviewService
-    lateinit var cont: HttpEntity<*>
+    lateinit var cont: HttpEntity<String>
+    var deque: Deque<HttpEntity<String>> = LinkedList()
 
     @PostMapping("/")
-    fun process(@RequestBody content: String, model: Model, @ModelAttribute data: HttpEntity<*>): ResponseEntity<*> {
-        val requestUri = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString()
-        println(requestUri)
-        cont = PreviewService.getEntity(content)
+    fun process(@RequestBody content: String): ResponseEntity<ByteArray> {
+        deque.addLast(PreviewService.getEntity(content))
+        val requestUri = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString() + deque.size
+        println("ON POST $requestUri")
         //model["data"] = pageContent
         //println("post $pageContent")
         //println("model $model")
@@ -29,16 +32,16 @@ class PreviewController {
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(response)
     }
 
-    @GetMapping("/")
-    fun temp(@ModelAttribute data: HttpEntity<*>, model: Model): HttpEntity<*> {
+    @GetMapping("/{id}")
+    fun temp(): HttpEntity<String> {
         val requestUri1 = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString()
-        println(requestUri1)
+        println("ON GET $requestUri1")
         //println("content1 $model")
 
         //model["data"] = data
         //println("content2 $model")
 
-        return cont
+        return deque.removeFirst()
     }
 
 }

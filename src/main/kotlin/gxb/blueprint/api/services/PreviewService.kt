@@ -1,5 +1,7 @@
 package gxb.blueprint.api.services
 
+//import org.junit.jupiter.params.shadow.com.univocity.parsers.conversions.Conversions.string
+import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
@@ -11,11 +13,13 @@ import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import java.awt.Dimension
 import java.awt.Toolkit
+import java.util.*
+
 
 @Service
 class PreviewService {
     private final val driver: WebDriver
-
+    private final val originalWindow: String
     init {
         val chromeDriverPath: String = "src/main/resources/chromedriver.exe"
         System.setProperty("webdriver.chrome.driver", chromeDriverPath)
@@ -24,16 +28,28 @@ class PreviewService {
         val width: Int = sSize.width
         val height: Int = sSize.height
         val options: ChromeOptions = ChromeOptions()
-        options.addArguments("--headless", "--disable-gpu", "--window-size=$width,$height")
+        //add --headless argument
+        options.addArguments("--disable-gpu", "--window-size=$width,$height")
         driver = ChromeDriver(options)
+        originalWindow = driver.windowHandle
     }
     fun makeScreenshot(urlValue: String?): ByteArray {
-        driver.get("$urlValue")
+        (driver as JavascriptExecutor).executeScript("window.open('$urlValue','_blank');")
+        //driver.switchTo().alert().accept()
+        //driver.findElement(By.cssSelector("html")).sendKeys(Keys.CONTROL, "t")
+        //driver.get("$urlValue")
+        val tabs = ArrayList(driver.windowHandles)
+        driver.switchTo().window(tabs[1])
+
         val screenshot = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
-        driver.close();
+        if (driver.windowHandles.size != 1) {
+            driver.close()
+        }
+        driver.switchTo().window(tabs[0])
+
         return screenshot
     }
-    fun getEntity(content: String?): HttpEntity<*> {
+    fun getEntity(content: String?): HttpEntity<String> {
          return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body("""
                 <!DOCTYPE html>
                 <html>
