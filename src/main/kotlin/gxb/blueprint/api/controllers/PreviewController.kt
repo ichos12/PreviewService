@@ -17,7 +17,6 @@ import javax.servlet.http.HttpServletRequest
 class PreviewController {
     @Autowired
     lateinit var PreviewService: PreviewService
-    lateinit var cont: HttpEntity<String>
     var deque: Deque<HttpEntity<String>> = LinkedList()
 
     @PostMapping("/")
@@ -25,10 +24,7 @@ class PreviewController {
         deque.addLast(PreviewService.getEntity(content))
         val requestUri = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString() + deque.size
         println("ON POST $requestUri")
-        //model["data"] = pageContent
-        //println("post $pageContent")
-        //println("model $model")
-        val response = PreviewService.makeScreenshot(requestUri)
+        val response = PreviewService.makeScreenshot(requestUri, deque.size)
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(response)
     }
 
@@ -36,10 +32,6 @@ class PreviewController {
     fun temp(): HttpEntity<String> {
         val requestUri1 = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString()
         println("ON GET $requestUri1")
-        //println("content1 $model")
-
-        //model["data"] = data
-        //println("content2 $model")
 
         return deque.removeFirst()
     }
