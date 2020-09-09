@@ -7,14 +7,15 @@ import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.support.ui.ExpectedConditions.numberOfWindowsToBe
-import org.openqa.selenium.support.ui.WebDriverWait
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import java.awt.Dimension
 import java.awt.Toolkit
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.set
 
 
 @Service
@@ -30,8 +31,17 @@ class PreviewService {
         val width: Int = sSize.width
         val height: Int = sSize.height
         val options: ChromeOptions = ChromeOptions()
+//        val downloadFilepath = "src/main/resources/pdfs"
+//        val chromePrefs = HashMap<String, Any>()
+//        chromePrefs["download.prompt_for_download"] = false
+//        chromePrefs["download.default_directory"] = downloadFilepath
+//        chromePrefs["download.directory_upgrade"] = true
+//        chromePrefs["plugins.plugins_disabled"] = "Chrome PDF Viewer"
+//        chromePrefs["plugins.always_open_pdf_externally"] = true
+//        chromePrefs["pdfjs.disabled"] = true
         //add --headless argument
-        options.addArguments("--disable-gpu", "--window-size=$width,$height")
+        options.addArguments("--disable-gpu", "--hide-scrollbars", "--window-size=$width,$height")
+//        options.setExperimentalOption("prefs", chromePrefs)
         driver = ChromeDriver(options)
         originalWindow = driver.windowHandle
     }
@@ -40,11 +50,17 @@ class PreviewService {
         val newWindow = ArrayList(driver.windowHandles)
         newWindow.remove(originalWindow)
         println("windows(reqcount) -- $newWindow $requestsCount")
-        driver.switchTo().window(newWindow[newWindow.size-1])
-//        val newDriver = ChromeDriver()
+        driver.switchTo().window(newWindow[newWindow.size - 1])
+//        val options = ChromeOptions()
+//        options.addArguments("--enable-logging", "--disable-gpu", "--print-to-pdf", "$urlValue")
+//        val newDriver = ChromeDriver(options)
 //        newDriver.get(urlValue)
+        var html = driver.pageSource
+        print(html)
+
+
         val screenshot = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
-        if (newWindow[newWindow.size-1] != originalWindow) {
+        if (newWindow[newWindow.size - 1] != originalWindow) {
             driver.close()
         }
 
