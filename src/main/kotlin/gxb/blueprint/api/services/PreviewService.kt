@@ -1,21 +1,23 @@
 package gxb.blueprint.api.services
 
 //import org.junit.jupiter.params.shadow.com.univocity.parsers.conversions.Conversions.string
-import org.openqa.selenium.JavascriptExecutor
-import org.openqa.selenium.OutputType
-import org.openqa.selenium.TakesScreenshot
-import org.openqa.selenium.WebDriver
+
+import org.apache.catalina.manager.Constants.CHARSET
+import org.htmlcleaner.*
+import org.openqa.selenium.*
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import org.xhtmlrenderer.pdf.ITextRenderer
 import java.awt.Dimension
 import java.awt.Toolkit
-import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.set
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
 
 
 @Service
@@ -55,9 +57,35 @@ class PreviewService {
 //        options.addArguments("--enable-logging", "--disable-gpu", "--print-to-pdf", "$urlValue")
 //        val newDriver = ChromeDriver(options)
 //        newDriver.get(urlValue)
-        var html = driver.pageSource
-        print(html)
+        val html = driver.pageSource
+        print("\nHTML\n$html")
 
+        val out = ByteArrayOutputStream()
+        val cleaner = HtmlCleaner()
+        val props: CleanerProperties = cleaner.properties
+        //props.isAdvancedXmlEscape = true
+        //props.isOmitXmlDeclaration = true
+        props.isOmitComments = true
+        props.pruneTags = "script"
+        val node: TagNode = cleaner.clean(html)
+        PrettyXmlSerializer(props).writeToStream(node, out, "utf-8")
+        PrettyXmlSerializer(props).writeToFile(node, "example.xml", "utf-8")
+//        val links: Array<TagNode> = node.getElementsByName("link", true)
+//        val meta: Array<TagNode> = node.getElementsByName("meta", true)
+//        val imgs: Array<TagNode> = node.getElementsByName("img", true)
+
+        print("\nCLEAN HTML\n$out")
+
+        val os: OutputStream = FileOutputStream(File("example.pdf"))
+        val renderer = ITextRenderer()
+        renderer.setDocumentFromString(out.toString())
+        renderer.layout()
+        renderer.createPDF(os)
+        renderer.finishPDF()
+        out.flush()
+        out.close()
+
+        os.close()
 
         val screenshot = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
         if (newWindow[newWindow.size - 1] != originalWindow) {
@@ -87,8 +115,8 @@ class PreviewService {
     }
     fun getEntity(content: String?): HttpEntity<String> {
          return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body("""
-                <!DOCTYPE html>
-                <html>
+                    <!DOCTYPE html>
+                    <html>
                     <head>
                         <meta charset="utf-8">
                         <title>Пример страницы</title>
