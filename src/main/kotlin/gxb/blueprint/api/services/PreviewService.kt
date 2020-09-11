@@ -2,15 +2,22 @@ package gxb.blueprint.api.services
 
 //import org.junit.jupiter.params.shadow.com.univocity.parsers.conversions.Conversions.string
 
-import org.apache.catalina.manager.Constants.CHARSET
-import org.htmlcleaner.*
-import org.openqa.selenium.*
+import com.lowagie.text.pdf.BaseFont
+import org.htmlcleaner.CleanerProperties
+import org.htmlcleaner.HtmlCleaner
+import org.htmlcleaner.PrettyXmlSerializer
+import org.htmlcleaner.TagNode
+import org.openqa.selenium.JavascriptExecutor
+import org.openqa.selenium.OutputType
+import org.openqa.selenium.TakesScreenshot
+import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.springframework.http.HttpEntity
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import org.xhtmlrenderer.extend.FontResolver
 import org.xhtmlrenderer.pdf.ITextRenderer
 import java.awt.Dimension
 import java.awt.Toolkit
@@ -47,37 +54,61 @@ class PreviewService {
         driver = ChromeDriver(options)
         originalWindow = driver.windowHandle
     }
-    fun makeScreenshot(urlValue: String?, requestsCount: Int): ByteArray {
-        (driver as JavascriptExecutor).executeScript("window.open('$urlValue','_blank');")
-        val newWindow = ArrayList(driver.windowHandles)
-        newWindow.remove(originalWindow)
-        println("windows(reqcount) -- $newWindow $requestsCount")
-        driver.switchTo().window(newWindow[newWindow.size - 1])
-//        val options = ChromeOptions()
-//        options.addArguments("--enable-logging", "--disable-gpu", "--print-to-pdf", "$urlValue")
-//        val newDriver = ChromeDriver(options)
-//        newDriver.get(urlValue)
+    fun makePdf() {
         val html = driver.pageSource
         print("\nHTML\n$html")
 
         val out = ByteArrayOutputStream()
         val cleaner = HtmlCleaner()
         val props: CleanerProperties = cleaner.properties
-        //props.isAdvancedXmlEscape = true
-        //props.isOmitXmlDeclaration = true
+        props.charset = "utf-8"
         props.isOmitComments = true
         props.pruneTags = "script"
+        props.isRecognizeUnicodeChars = true
         val node: TagNode = cleaner.clean(html)
-        PrettyXmlSerializer(props).writeToStream(node, out, "utf-8")
-        PrettyXmlSerializer(props).writeToFile(node, "example.xml", "utf-8")
-//        val links: Array<TagNode> = node.getElementsByName("link", true)
-//        val meta: Array<TagNode> = node.getElementsByName("meta", true)
-//        val imgs: Array<TagNode> = node.getElementsByName("img", true)
+
+        val styleNodes = node.getElementListByName("style", true) as MutableList<TagNode>
+        if (styleNodes.isEmpty()) {
+            val style = TagNode("style")
+            node.traverse { _, htmlNode ->
+                if (htmlNode is TagNode) {
+                    val tagName = htmlNode.name
+                    if ("head" == tagName) {
+                        htmlNode.addChild(style)
+                    }
+                }
+                styleNodes.add(style)
+            }
+        }
+        node.traverse { _, htmlNode ->
+            if (htmlNode is TagNode) {
+                val tagName = htmlNode.name
+                if ("link" == tagName) {
+                    val rel = htmlNode.getAttributeByName("rel")
+                    if (rel == "stylesheet") {
+                        htmlNode.addAttribute("media", "all")
+                    }
+                }
+            }
+            true
+        }
+        val styleContent = cleaner.getInnerHtml(styleNodes[0])
+        cleaner.setInnerHtml(styleNodes[0], "@page { size: A4 landscape;}\n@media print$styleContent");
+
+        PrettyXmlSerializer(props).writeToStream(node, out)
 
         print("\nCLEAN HTML\n$out")
+        val window = driver.windowHandle
+        print(window)
+        val session = (driver as ChromeDriver).sessionId
+        val folder = File("src/main/resources/$session")
+        if (!folder.exists()){
+            folder.mkdir()
+        }
 
-        val os: OutputStream = FileOutputStream(File("example.pdf"))
-        val renderer = ITextRenderer()
+        val os: OutputStream = FileOutputStream(File(folder, "$window.pdf"))
+        val renderer = ITextRenderer(36f, 25)
+        renderer.fontResolver.addFont("C:\\Windows\\Fonts\\CALIBRI.TTF", BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED)
         renderer.setDocumentFromString(out.toString())
         renderer.layout()
         renderer.createPDF(os)
@@ -86,6 +117,21 @@ class PreviewService {
         out.close()
 
         os.close()
+
+    }
+    fun makeScreenshot(urlValue: String?, requestsCount: Int): ByteArray {
+        //(driver as JavascriptExecutor).executeScript("window.open('$urlValue','_blank');")
+        (driver as JavascriptExecutor).executeScript("window.open('https://vk.com','_blank');")
+        val newWindow = ArrayList(driver.windowHandles)
+        newWindow.remove(originalWindow)
+        println("windows(reqcount) -- $newWindow $requestsCount")
+        driver.switchTo().window(newWindow[newWindow.size - 1])
+//        val options = ChromeOptions()
+//        options.addArguments("--enable-logging", "--disable-gpu", "--print-to-pdf", "$urlValue")
+//        val newDriver = ChromeDriver(options)
+//        newDriver.get(urlValue)
+
+        makePdf()
 
         val screenshot = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
         if (newWindow[newWindow.size - 1] != originalWindow) {
@@ -122,6 +168,7 @@ class PreviewService {
                         <title>Пример страницы</title>
                         <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
                         <style>
+                            
                             html {
                               height: 100%;
                             }
