@@ -35,29 +35,4 @@ class PreviewController {
 
         return deque.removeFirst()
     }
-
-    @GetMapping("/{id}/er")
-    fun tep(): HttpEntity<String> {
-        //val requestUri1 = ServletUriComponentsBuilder.fromCurrentRequestUri().toUriString()
-        //println("ON GET $requestUri1")
-
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body("""
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <meta charset="utf-8">
-                        <title>Пример страницы</title>
-                        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-                    </head>
-                    <body>
-                        <div id="scrolling-container">
-                            <div id="quill-container">
-                       
-                            </div>
-                        </div>                        
-                    </body>
-                </html>
-                """)
-    }
-
 }
