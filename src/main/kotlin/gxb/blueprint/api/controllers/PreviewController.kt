@@ -26,6 +26,11 @@ class PreviewController {
         println("ON POST $requestUri")
         val response = PreviewService.makeScreenshot(requestUri, deque.size)
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(response)
+//        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body("""
+//                {
+//                    "data": "$response"
+//                }
+//                """)
     }
 
     @GetMapping("/{id}")

@@ -134,6 +134,8 @@ class PreviewService {
         makePdf()
 
         val screenshot = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
+        val screenshot1 = (driver as TakesScreenshot).getScreenshotAs(OutputType.FILE)
+        screenshot1.copyTo(File("example3.png"), true)
         if (newWindow[newWindow.size - 1] != originalWindow) {
             driver.close()
         }
