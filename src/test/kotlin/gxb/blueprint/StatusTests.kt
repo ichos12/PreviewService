@@ -1,16 +1,14 @@
 package gxb.blueprint
 
 import gxb.blueprint.HttpHelper.restTemplate
+import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpMethod
 import org.springframework.http.ResponseEntity
 import java.awt.image.BufferedImage
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
+import java.io.*
 import java.util.*
 import javax.imageio.ImageIO
 
@@ -114,7 +112,6 @@ class StatusTests : MediaApplicationTests() {
               }
             ]
         """
-        //val result = HttpHelper.post("http://localhost:8080/api/v1/preview/", ByteArray::class.java, bodyString)
         val response: ResponseEntity<ByteArray> = restTemplate.exchange("http://localhost:8080/api/v1/preview/", HttpMethod.POST, HttpEntity(bodyString), ByteArray::class.java)
         val result = response.body
         val baos = ByteArrayOutputStream()
@@ -125,30 +122,16 @@ class StatusTests : MediaApplicationTests() {
         val bais = ByteArrayInputStream(result)
         val requestImage = ImageIO.read(bais)
 
-        //ImageIO.write(bImage2, "png", File("from-request.png") );
-        //ImageIO.write(image, "png", File("example.png") );
-        val imageByteArray: ByteArray = baos.toByteArray()
         ImageIO.write(requestImage, "png", requestBaos)
         requestBaos.flush()
-        val requestByteArray: ByteArray = baos.toByteArray()
-//        val base64String: String = Base64.getEncoder().encodeToString(baos.toByteArray())
-//        val base64String2: String = Base64.getEncoder().encodeToString(baos.toByteArray())
+        val originalBase64String: String = Base64.getEncoder().encodeToString(baos.toByteArray())
+        val requestedBase64String: String = Base64.getEncoder().encodeToString(requestBaos.toByteArray())
         baos.close()
         requestBaos.close()
-//        val resByteArray: ByteArray = Base64.getDecoder().decode(base64String)
-//        val resByteArray2: ByteArray = Base64.getDecoder().decode(base64String2)
-        assertEquals(imageByteArray.toString(), requestByteArray.toString())
+        var writer = FileWriter("orig.txt", false)
+        writer.write(originalBase64String)
+        writer = FileWriter("req.txt", false)
+        writer.write(requestedBase64String)
+        assertEquals(originalBase64String, requestedBase64String)
     }
 }
-
-//@ExtendWith(SpringExtension.class)
-//@WebMvcTest(PreviewController.class)
-//class PreviewControllerTest {
-//    @Autowired
-//    lateinit var mockMvc: MockMvc
-//    @Test
-////    fun testReturn200() {
-////        mockMvc.get("/person/42").andExpect(status().isOk).andExpect(content()
-////                .contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-////    }
-//}

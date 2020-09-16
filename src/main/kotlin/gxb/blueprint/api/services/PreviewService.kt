@@ -3,6 +3,7 @@ package gxb.blueprint.api.services
 //import org.junit.jupiter.params.shadow.com.univocity.parsers.conversions.Conversions.string
 
 import com.lowagie.text.pdf.BaseFont
+import mu.KotlinLogging
 import org.htmlcleaner.CleanerProperties
 import org.htmlcleaner.HtmlCleaner
 import org.htmlcleaner.PrettyXmlSerializer
@@ -26,6 +27,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 
+private val logger = KotlinLogging.logger {}
 
 @Service
 class PreviewService {
@@ -56,7 +58,7 @@ class PreviewService {
     }
     fun makePdf() {
         val html = driver.pageSource
-        print("\nHTML\n$html")
+        logger.debug { "\nHTML\n$html" }
 
         val out = ByteArrayOutputStream()
         val cleaner = HtmlCleaner()
@@ -97,9 +99,9 @@ class PreviewService {
 
         PrettyXmlSerializer(props).writeToStream(node, out)
 
-        print("\nCLEAN HTML\n$out")
+        logger.debug { "\nCLEAN HTML\n$out" }
         val window = driver.windowHandle
-        print(window)
+        logger.debug { window }
         val session = (driver as ChromeDriver).sessionId
         val folder = File("src/main/resources/$session")
         if (!folder.exists()){
@@ -124,7 +126,7 @@ class PreviewService {
         //(driver as JavascriptExecutor).executeScript("window.open('https://vk.com','_blank');")
         val newWindow = ArrayList(driver.windowHandles)
         newWindow.remove(originalWindow)
-        println("windows(reqcount) -- $newWindow $requestsCount")
+        logger.debug { "windows(reqcount) -- $newWindow $requestsCount" }
         driver.switchTo().window(newWindow[newWindow.size - 1])
 //        val options = ChromeOptions()
 //        options.addArguments("--enable-logging", "--disable-gpu", "--print-to-pdf", "$urlValue")
